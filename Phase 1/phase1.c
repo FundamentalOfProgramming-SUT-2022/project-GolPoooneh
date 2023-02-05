@@ -4,13 +4,13 @@
 #include <string.h>
 #include <windows.h>
 
-char log[100][2][1000];
+char log[1000][1000];
 int log_size = 0;
 int arm;
 
 const char comms[28][18] = {"createfile -file ", "insertstr -file ", " -str", " -pos", "cat -file ", "removestr -file ", " -size",
                              "copystr -file ", "cutstr -file ", "pastestr -file ", "find -str ", " -file", " -count", " -at ", " -byword", " -all",
-                             "grep -", " -files", " /root", "compare ", "tree ", "arm", "auto-indent ", "undo -file ", " =D "و " -str1", " -str2",
+                             "grep", " -files", " /", "compare ", "tree ", "arm", "auto-indent ", "undo -file ", " =D ", " -str1", " -str2",
                               "replace -str1 "};
 
 int string_checker(char a[], char b[], int max)
@@ -29,13 +29,17 @@ char *adress_maker(char *command)
 
 int num_maker(char *command, int start)
 {
-    int num = 0, i = 0;
+    int num = 0, i = 0, flag = 1;
+    if(command[0] == '-'){
+        flag = -1;
+        i++;
+    }
     while((command[i+start] < 58) && (command[i+start] > 47)){
         num *= 10;
         num += (command[i+start] - 48);
         i++;
     }
-    return num;
+    return num*flag;
 }
 
 void create(char *command)
@@ -94,8 +98,9 @@ void insert(char *command)
         start = i;
         flag = 1;
     }
-    strcpy(log[log_size-1][0], ad_name);
-    strcpy(log[log_size-1][1], "");
+    strcat(log[log_size], ad_name);
+    strcat(log[log_size], "|||");
+    strcat(log[log_size], "");
     log_size++;
     while(!string_checker(command+i, comms[3], strlen(comms[3]))){
         if((command[i] == 92) && (command[i+1] == 92) && (command[i+2] == 'n')){
@@ -143,13 +148,12 @@ void cat(char *command)
         ad_name[i-start] = command[i];
         i++;
     }
-    FILE *tptr = fopen("temporary.txt", "w");
-    fclose(tptr);
-    tptr = fopen("temporary.txt", "a+");
+    FILE *tptr = fopen("temporary.txt", "w+");
     FILE *fptr = fopen(ad_name, "r");
     if(fptr == NULL){
-        fprintf(tptr, "File doesn't exist\n");
+        printf("File doesn't exist\n");
         fclose(fptr);
+        fclose(tptr);
         free(ad_name);
         return ;
     }
@@ -170,7 +174,7 @@ void cat(char *command)
         fseek(tptr, 0, SEEK_SET);
         char *string = (char *)calloc(file_size_tptr+1, sizeof(char));
         fread(string, sizeof(char), file_size_tptr, tptr);
-        printf("%s", string);
+        puts(string);
         free(string);
     }
     else
@@ -211,8 +215,9 @@ void remoove(char *command)
     char *string = (char *)calloc(file_size+1, sizeof(char));
     fread(string, sizeof(char), file_size, fptr);
     fclose(fptr);
-    strcpy(log[log_size-1][0], ad_name);
-    strcpy(log[log_size-1][1], string);
+    strcat(log[log_size], ad_name);
+    strcat(log[log_size], "|||");
+    strcat(log[log_size], string);
     log_size++;
     fptr = fopen(ad_name, "w");
     int line_counter = 1, pos_counter = 0, k = 0;
@@ -230,7 +235,7 @@ void remoove(char *command)
             string[k+j] = NULL;
         }
     }
-    else{
+    else if(command[strlen(command)-1] == 'b'){
         for(int j = 0; j < size; j++){
             string[k-j] = NULL;
         }
@@ -337,8 +342,9 @@ void paste(char *command)
     char *string = (char *)calloc(file_size+1, sizeof(char));
     fread(string, sizeof(char), file_size, fptr);
     fclose(fptr);
-    strcpy(log[log_size-1][0], ad_name);
-    strcpy(log[log_size-1][1], string);
+    strcat(log[log_size], ad_name);
+    strcat(log[log_size], "|||");
+    strcat(log[log_size], string);
     log_size++;
     fptr = fopen(ad_name, "w");
     int line_counter = 1, pos_counter = 0, k = 0;
@@ -363,35 +369,36 @@ void paste(char *command)
 }
 
 void find(char *command)
-{
+{ 
+    //find -str "haj" -file /root/dirdir/file.txt
     int i = 0, string_size, flag = 0, stat = 0, temp, adress_size, at, star = -1, file_size;
     while(!string_checker(command+i, comms[11], strlen(comms[11]))){
         i++;
     }
     string_size = i;
-    if((command[0] == 92) && (command[i-1] == 92)){
+    if((command[0] == '"') && (command[i-1] == '"')){
         string_size -= 2;
         flag = 1;
     }
     temp = i;
-    while(temp < strlen(command)){
-        if(string_checker(command + temp, comms[12], strlen(comms[11]))){
+    while(temp < (arm == 0)*strlen(command) + (arm == 1)*(strstr(command, comms[24])-command)){
+        if(string_checker(command + temp, comms[12], strlen(comms[12]))){
             if(stat == 0)
                 adress_size = temp-i-strlen(comms[11])-2;
             stat += 1;
         }
-        else if(string_checker(command + temp, comms[15], strlen(comms[14]))){
+        else if(string_checker(command + temp, comms[15], strlen(comms[15]))){
             if(stat == 0)
                 adress_size = temp-i-strlen(comms[11])-2;
             stat += 2;
         }
-        else if(string_checker(command + temp, comms[13], strlen(comms[12]))){
+        else if(string_checker(command + temp, comms[13], strlen(comms[13]))){
             if(stat == 0)
                 adress_size = temp-i-strlen(comms[11])-2;
             stat += 4;
-            at = num_maker(command + temp + strlen(comms[12]));
+            at = num_maker(command, temp + strlen(comms[13]));
         }
-        else if(string_checker(command + temp, comms[14], strlen(comms[13]))){
+        else if(string_checker(command + temp, comms[14], strlen(comms[14]))){
             if(stat == 0)
                 adress_size = temp-i-strlen(comms[11])-2;
             stat += 8;
@@ -399,8 +406,8 @@ void find(char *command)
         temp++;
     }
     if(stat == 0)
-        adress_size = temp-i-strlen(comms[10])-2;
-    i += strlen(11) + 2;
+        adress_size = temp-i-strlen(comms[11])-2;
+    i += strlen(comms[11]) + 2;
     char *ad_name = (char *)calloc(adress_size+1, sizeof(char));
     int start = i;
     while(i-start < adress_size){
@@ -420,13 +427,15 @@ void find(char *command)
     char *file_string = (char *)calloc(file_size+1, sizeof(char));
     fread(file_string, sizeof(char), file_size, fptr);
     fclose(fptr);
+    printf("%s\n", file_string);
     char *string = (char *)calloc(string_size+1, sizeof(char));
     int k = flag, s = 0;
-    while(k < string_size){
+    while(s < string_size){
         if((command[k] == 92) && (command[k+1] == '*')){
             string[s] = '*';
             s += 1;
             k += 2;
+            string_size--;
         }
         else if((command[k] == '*') && (command[k-1] != 92)){
             string[s] = NULL;
@@ -450,11 +459,11 @@ void find(char *command)
     int count = 0, all = 0, word_counter = 1, word1, word2, mount = 0, wordstar;
     char *z;
     int done = 0;
-    FILE *tptr = fopen("temporary.txt", "w");
-    fclose(tptr);
-    tptr = fopen("temporary.txt", "a+");
+    FILE *tptr = fopen("temporary.txt", "w+");
     //------------------------------------------------------------------------------------------------------------------------
     while(k < file_size){
+        if(done == 1)
+            break;
         if(((file_string[k] == ' ') || (file_string[k] == '\n')) && ((file_string[k+1] != ' ') || (file_string[k+1] != '\n')))
             word_counter++;
         if((star == -1) && ((stat == 0) || (stat == 8))){
@@ -471,9 +480,9 @@ void find(char *command)
         else if((star == -1) && ((stat == 2) || (stat == 10))){
             if(string_checker(string, file_string+k, s)){
                 if(all == 0)
-                    fprintf(tptr, "%d", (k+1)*(stat == 0)+(word_counter)*(stat == 8));
+                    fprintf(tptr, "%d", (k+1)*(stat == 2)+(word_counter)*(stat == 10));
                 else
-                    fprintf(tptr, ",%d", (k+1)*(stat == 0)+(word_counter)*(stat == 8));
+                    fprintf(tptr, ",%d", (k+1)*(stat == 2)+(word_counter)*(stat == 10));
                 all++;
             }
         }
@@ -481,7 +490,7 @@ void find(char *command)
             if(string_checker(string, file_string+k, s))
                 count++;
             if(count == at){
-                fprintf(tptr, "%d", (k+1)*(stat == 0)+(word_counter)*(stat == 8));
+                fprintf(tptr, "%d", (k+1)*(stat == 4)+(word_counter)*(stat == 12));
                 done = 1;
                 break;
             }
@@ -536,7 +545,7 @@ void find(char *command)
                     if(string_checker(string2, file_string+k+mount, strlen(string2))){
                         count++;
                         if(count == at){
-                            fprintf(tptr, "%d", (k+1)*(stat == 2)+(word_counter)*(stat == 10));
+                            fprintf(tptr, "%d", (k+1)*(stat == 4)+(word_counter)*(stat == 12));
                             done = 1;
                             break;
                         }
@@ -557,7 +566,7 @@ void find(char *command)
         fprintf(tptr, "-1\n");
     else if(stat == 1)
         fprintf(tptr, "%d", count);
-    
+
     else if(((stat == 2) || (stat == 10)) && (all == 0)){
         fprintf(tptr, "-1\n");
     }
@@ -583,47 +592,52 @@ void find(char *command)
 
 void replace(char *command)
 {
+    //replace -str1 "haj" -str2 "Gol" -file /root/dirdir/file.txt -all
     int i = 0, string_size1, string_size2, flag1 = 0, flag2 = 0, stat = 0, temp, adress_size, at = 1, star = -1, file_size;
     while(!string_checker(command+i, comms[26], strlen(comms[26]))){
         i++;
     }
+    printf("0\n");
     string_size1 = i;
-    if((command[0] == 92) && (command[i-1] == 92)){
+    if((command[0] == '"') && (command[i-1] == '"')){
         string_size1 -= 2;
         flag1 = 1;
     }
     while(!string_checker(command+i, comms[11], strlen(comms[11]))){
         i++;
     }
+    printf("1\n");
     string_size2 = i-(string_size1 + 2*flag1)-strlen(comms[26])-1;
-    if((command[string_size1 + 2*flag1 + strlen(comms[26]) + 1] == 92) && (command[i-1] == 92)){
+    if((command[string_size1 + 2*flag1 + strlen(comms[26]) + 1] == '"') && (command[i-1] == '"')){
         string_size2 -= 2;
         flag2 = 1;
     }
     temp = i;
     while(temp < strlen(command)){
-        if(string_checker(command + temp, comms[15], strlen(comms[14]))){
+        if(string_checker(command + temp, comms[15], strlen(comms[15]))){
             if(stat == 0)
                 adress_size = temp-i-strlen(comms[11])-2;
             stat += 2;
         }
-        else if(string_checker(command + temp, comms[13], strlen(comms[12]))){
+        else if(string_checker(command + temp, comms[13], strlen(comms[13]))){
             if(stat == 0)
                 adress_size = temp-i-strlen(comms[11])-2;
             stat += 4;
-            at = num_maker(command + temp + strlen(comms[12]));
+            at = num_maker(command, temp + strlen(comms[13]));
         }
         temp++;
     }
+    printf("2 %d\n", adress_size);
     if(stat == 0)
         adress_size = temp-i-strlen(comms[11])-2;
-    i += strlen(11) + 2;
+    i += strlen(comms[11]) + 2;
     char *ad_name = (char *)calloc(adress_size+1, sizeof(char));
     int start = i;
     while(i-start < adress_size){
         ad_name[i-start] = command[i];
         i++;
     }
+    printf("3\n");
     FILE *fptr = fopen(ad_name, "r");
     if(fptr == NULL){
         printf("File doesn't exist\n");
@@ -637,16 +651,19 @@ void replace(char *command)
     char *file_string = (char *)calloc(file_size+1, sizeof(char));
     fread(file_string, sizeof(char), file_size, fptr);
     fclose(fptr);
-    strcpy(log[log_size-1][0], ad_name);
-    strcpy(log[log_size-1][1], file_string);
+    strcat(log[log_size], ad_name);
+    strcat(log[log_size], "|||");
+    strcat(log[log_size], file_string);
     log_size++;
     char *message1 = (char *)calloc(string_size1+1, sizeof(char));
     int k = flag1, s = 0;
+    printf("4\n");
     while(s < string_size1){
         if((command[k] == 92) && (command[k+1] == '*')){
             message1[s] = '*';
             s += 1;
             k += 2;
+            string_size1--;
         }
         else if((command[k] == '*') && (command[k-1] != 92)){
             message1[s] = NULL;
@@ -660,14 +677,16 @@ void replace(char *command)
             k++;
         }
     }
+    printf("6\n");
     char *message2 = (char *)calloc(string_size2+1, sizeof(char));
     k = flag2 + string_size1 + 2*flag1 +strlen(comms[26]) + 1;
     s = 0;
     while(s < string_size2){
-        message1[s] = command[k];
+        message2[s] = command[k];
         s++;
         k++;
     }
+    printf("7\n");
     char *string1 = (char *)calloc(100, sizeof(char));
     char *string2 = (char *)calloc(100, sizeof(char));
     if(star != -1){
@@ -679,27 +698,27 @@ void replace(char *command)
     char *z;
     int done = 0;
     char *ans = (char *)calloc(2*file_size + 1, sizeof(char));
-    FILE *tptr = fopen("temporary.txt", "w");
-    fclose(tptr);
-    FILE *fptr = fopen(ad_name, "w");
-    tptr = fopen("temporary.txt", "a+");
+    FILE *tptr = fopen("temporary.txt", "w+");
+    fptr = fopen(ad_name, "w");
+    printf("%s\n%s %s\n", file_string, message1, message2);
     //------------------------------------------------------------------------------------------------------------------------
     while(k < file_size){
         if(((file_string[k] == ' ') || (file_string[k] == '\n')) && ((file_string[k+1] != ' ') || (file_string[k+1] != '\n')))
             word_counter++;
         if((star == -1) && (stat == 2)){
             if(string_checker(message1, file_string+k, s)){
-                strncpy(ans, file_string+l, k-l);
-                strcpy(ans, message2);
+                strncat(ans, file_string+l, k-l);
+                strcat(ans, message2);
                 l = k + strlen(message1);
+                all++;
             }
         }
         else if((star == -1) && ((stat == 4) || (stat == 0))){
             if(string_checker(message1, file_string+k, s))
                 count++;
             if(count == at){
-                strncpy(ans, file_string+l, k-l);
-                strcpy(ans, message2);
+                strncat(ans, file_string+l, k-l);
+                strcat(ans, message2);
                 l = k + strlen(message1);
                 fputs(ans, fptr);
                 fprintf(tptr, "Success\n");
@@ -712,9 +731,10 @@ void replace(char *command)
                 mount = strlen(string1);
                 while((file_string[k+mount] != ' ') && (file_string[k+mount] != '\n') && (file_string[k+mount] != NULL)){
                     if(string_checker(string2, file_string+k+mount, strlen(string2))){
-                        strncpy(ans, file_string+l, k-l);
-                        strcpy(ans, message2);
+                        strncat(ans, file_string+l, k-l);
+                        strcat(ans, message2);
                         l = k + mount + strlen(string2);
+                        all++;
                     }
                     mount++;
                 }
@@ -727,8 +747,8 @@ void replace(char *command)
                     if(string_checker(string2, file_string+k+mount, strlen(string2))){
                         count++;
                         if(count == at){
-                            strncpy(ans, file_string+l, k-l);
-                            strcpy(ans, message2);
+                            strncat(ans, file_string+l, k-l);
+                            strcat(ans, message2);
                             l = k + mount + strlen(string2);
                             fputs(ans, fptr);
                             fprintf(tptr, "Success\n");
@@ -747,6 +767,7 @@ void replace(char *command)
         }
         k++;
     }
+    strncat(ans, file_string+l, file_size-l);
     if(((stat == 0) || (stat == 4)) && (done == 0)){
         fputs(file_string, fptr);
         fprintf(tptr, "-1\n");
@@ -784,8 +805,9 @@ void replace(char *command)
 
 void grep(char *command)
 {
+    // grep -str "qam" -files /root/dirdir/file.txt /root/dirdir/file1.txt /root/dirdir/file2.txt
     int i = 0, start = 0;
-    while(string_checker(command+i, comms[2], strlen(comms[2]))){
+    while(!string_checker(command+i, comms[2], strlen(comms[2]))){
         i++;
     }
     i += strlen(comms[2]) + 1;
@@ -826,16 +848,14 @@ void grep(char *command)
     int count = 0, first = start;
     start = i;
     char *ad_name = (char *)calloc(50, sizeof(char));
-    int count = 0;
-    FILE *tptr = fopen("temporary.txt", "w");
-    fclose(tptr);
-    tptr = fopen("temporary.txt", "a+");
-    while((!string_checker(command+i, comms[24], strlen(comms[24])))*(arm == 1) || (i < strlen(command))*(arm == 0)){
-        if(string_checker(command+i, comms[18], strlen(comms[18]))){
+    FILE *tptr = fopen("temporary.txt", "w+");
+    do{
+        if(string_checker(command+i, comms[18], strlen(comms[18])) || (string_checker(command+i, comms[24], strlen(comms[24])))*(arm == 1) || (i == strlen(command))*(arm == 0)){
             i += 2;
+            start = i;
             //---------------------------------------------------------------
             FILE *fptr = fopen(ad_name, "r");
-            if(fptr == NULL){
+            if((fptr == NULL) && (!string_checker(command+i-2-strlen(comms[24]), comms[24], strlen(comms[24])))){
                 fprintf(tptr, "file %s not found\n", ad_name);
                 fclose(fptr);
             }
@@ -845,15 +865,15 @@ void grep(char *command)
                 while(!feof(fptr)){
                     fgets(file_string, 100, fptr);
                     l = 0;
-                    while((l < 100) && (file_string[l] != NULL)){
+                    while((l < 100) || (file_string[l] != NULL)){
                         if(string_checker(string, file_string + l, stat-first-flag)){
-                            if(command[0] == 's'){
+                            if(command[2] == 's'){
                                 fprintf(tptr, "%s : %s\n", ad_name, file_string);
                             }
-                            else if(command[0] == 'c'){
+                            else if(command[2] == 'c'){
                                 count++;
                             }
-                            else if(command[0] == 'l'){
+                            else if(command[2] == 'l'){
                                 fprintf(tptr, "%s\n", ad_name);
                             }
                             l++;
@@ -861,7 +881,6 @@ void grep(char *command)
                         }
                         l++;
                     }
-                    
                 }
             free(file_string);
             fclose(fptr);
@@ -872,8 +891,8 @@ void grep(char *command)
         }
         ad_name[i-start] = command[i];
         i++;
-    }
-    if(command[0] == 'c')
+    }while((!string_checker(command+i, comms[24], strlen(comms[24])))*(arm == 1) || (i < strlen(command)+1)*(arm == 0));
+    if(command[2] == 'c')
         fprintf(tptr, "%d", count);
     free(string);
     free(ad_name);
@@ -896,7 +915,7 @@ void undo(char *command)
 {
     FILE *fptr;
     for(int i = log_size; i > -1; i--){
-        if(string_checker(command, log[i][0], sizeof(log[i][0]))){
+        if(string_checker(command, log[i], strlen(command))){
             fptr = fopen(command, "r");
             if(fptr == NULL){
                 printf("File doesn't exist\n");
@@ -905,7 +924,7 @@ void undo(char *command)
             }
             fclose(fptr);
             fptr = fopen(command, "w");
-            fputs(log[i][1], fptr);
+            fputs(log[i]+strlen(command)+3, fptr);
             fclose(fptr);
             return ;
         }
@@ -918,7 +937,7 @@ int find_most(char *string, int loc, char side)
 {
     int k , mount = 0, ans = -1;
     if(side == 'l'){
-        while((sting[loc+mount] != '\n') && (sting[loc+mount] != NULL) && (loc+mount >= 0) && ((string[loc+mount] != '{') || (string[loc+mount] != '}'))){
+        while((string[loc+mount] != '\n') && (string[loc+mount] != NULL) && (loc+mount >= 0) && (string[loc+mount] != '{') && (string[loc+mount] != '}')){
             if(string[loc+mount] != ' ')
                 ans = loc+mount;
             mount--;
@@ -926,7 +945,7 @@ int find_most(char *string, int loc, char side)
         return ans;
     }
     else{
-        while((sting[loc+mount] != '\n') && (sting[loc+mount] != NULL) && (loc+mount >= 0) && ((string[loc+mount] != '{') || (string[loc+mount] != '}'))){
+        while((string[loc+mount] != '\n') && (string[loc+mount] != NULL) && (loc+mount >= 0) && (string[loc+mount] != '{') && (string[loc+mount] != '}')){
             if(string[loc+mount] != ' ')
                 return loc+mount;
             mount--;
@@ -950,19 +969,21 @@ void indent(char *command)
         free(ad_name);
         return ;
     }
+     //auto-indent /root/dirdir/file.txt   for(int j = 0; j < count; j++){fprintf(fptr, "\t");}
     fseek(fptr, 0, SEEK_END);
     file_size = ftell(fptr);
     fseek(fptr, 0, SEEK_SET);
     char *string = (char *)calloc(file_size+1, sizeof(char));
     fread(string, sizeof(char), file_size, fptr);
     fclose(fptr);
-    strcpy(log[log_size-1][0], ad_name);
-    strcpy(log[log_size-1][1], string);
+    strcat(log[log_size], ad_name);
+    strcat(log[log_size], "|||");
+    strcat(log[log_size], string);
     log_size++;
     fptr = fopen(ad_name, "w");
     int l = 0, r = 0, mount, count = 0, k = 0;
-    for(k < file_size){
-        if(string[k] == '{'){
+    while(k < file_size){
+        if((string[k] == '{') && (((string[k+1] != '\'') || (string[k-1] != '\'')) && ((string[k+1] != '\"') || (string[k-1] != '\"')))){
             l = find_most(string, k-1, 'l');
             r = find_most(string, k-1, 'r');
             for(int j = 0; j < count; j++){
@@ -975,18 +996,22 @@ void indent(char *command)
             fprintf(fptr, "{\n");
             count++;
         }
-        else if(string[k] == '}'){
+        else if((string[k] == '}') && (((string[k+1] != '\'') || (string[k-1] != '\'')) && ((string[k+1] != '\"') || (string[k-1] != '\"')))){
             l = find_most(string, k-1, 'l');
             r = find_most(string, k-1, 'r');
             for(int j = 0; j < count; j++){
                 fprintf(fptr, "\t");
             }
+            count--;
             if(l != -1){
                 fwrite(string+l, sizeof(char), r-l+1, fptr);
+            }
+            if(string[k-1] != '}')
                 fprintf(fptr, "\n");
+            for(int j = 0; j < count; j++){
+                fprintf(fptr, "\t");
             }
             fprintf(fptr, "}\n");
-            count--;
         }
         k++;
     }
@@ -1008,6 +1033,7 @@ int line_counter(char *string, int size)
 
 void compare(char *command)
 {
+    // compare /root/dirdir/file1.txt /root/dirdir/file2.txt
     char *ad_name1 = (char *)calloc(50, sizeof(char));
     char *ad_name2 = (char *)calloc(50, sizeof(char));
     int i = 0, start = 0;
@@ -1017,16 +1043,23 @@ void compare(char *command)
     }
     i += 2;
     start = i;
-    while(i < strlen(command)){
-        if(command[i] == '/'){
-            command[i] = '\\';
-        }
+    while(i < (arm == 0)*strlen(command) + (arm == 1)*(strstr(command, comms[24])-command)){
         ad_name2[i-start] = command[i];
         i++;
     }
     int line1, line2;
     FILE *fptr1 = fopen(ad_name1, "r");
     FILE *fptr2 = fopen(ad_name2, "r");
+    if(fptr1 == NULL){
+        printf("File %s doesn't exist\n", ad_name1);
+        fclose(fptr1);
+        return ;
+    }
+    if(fptr2 == NULL){
+        printf("File %s doesn't exist\n", ad_name2);
+        fclose(fptr2);
+        return ;
+    }
     fseek(fptr1, 0, SEEK_END);
     int file_size1 = ftell(fptr1);
     fseek(fptr1, 0, SEEK_SET);
@@ -1037,26 +1070,36 @@ void compare(char *command)
     fseek(fptr2, 0, SEEK_END);
     int file_size2 = ftell(fptr2);
     fseek(fptr2, 0, SEEK_SET);
-    char *string = (char *)calloc(file_size2+1, sizeof(char));
+    string = (char *)calloc(file_size2+1, sizeof(char));
     fread(string, sizeof(char), file_size2, fptr2);
     line2 = line_counter(string, file_size2);
     free(string);
+    fclose(fptr1);
+    fclose(fptr2);
+    fptr1 = fopen(ad_name1, "r");
+    fptr2 = fopen(ad_name2, "r");
     int l1, r1 = -2, l2, r2 = -2, length, word_Counter1 = 0, word_Counter2 = 0, fail = 0, max_l, line = 1, left1, right1, left2, right2;
+    FILE *tptr = fopen("temporary.txt", "w+");
     while((!feof(fptr1)) && (!feof(fptr2))){
+        r1 = -2;
+        r2 = -2;
         char *string1 = (char *)calloc(100, sizeof(char));
         char *string2 = (char *)calloc(100, sizeof(char));
         fgets(string1, 100, fptr1);
         fgets(string2, 100, fptr2);
         length = strlen(string1) * (strlen(string1) >= strlen(string2)) + strlen(string2) * (strlen(string1) < strlen(string2));
+        fail = 0;
         if(!string_checker(string1, string2, length)){
+            string1[strlen(string1)-1] = (string1[strlen(string1)-1])*(string1[strlen(string1)-1] != '\n');
+            string2[strlen(string2)-1] = (string2[strlen(string2)-1])*(string2[strlen(string2)-1] != '\n');
             fail = 0;
-            for(int k = 0; k < length; k++){
+            for(int k = 0; k < length+1; k++){
                 if((string1[k] == ' ') || ((string1[k] == NULL) && (string1[k-1] != NULL))){
                     word_Counter1++;
                     l1 = r1 + 2;
                     r1 = k-1;
                     if(word_Counter1 == word_Counter2){
-                        if((r1-l1 != r2-l2) || ((r1-l1 == r2-l2) && (!string(string1, string2, r1-l1+1)))){
+                        if((r1-l1 != r2-l2) || ((r1-l1 == r2-l2) && (!string_checker(string1+l1, string2+l2, r1-l1+1)))){
                             fail++;
                             if(fail == 1){
                                 left1 = l1;
@@ -1065,9 +1108,7 @@ void compare(char *command)
                                 right2 = r2;
                             }
                             else if(fail > 1){
-                                printf("============ #%d ============\n", line);
-                                puts(string1);
-                                puts(string2);
+                                fprintf(tptr, "============ #%d ============\n%s\n%s\n", line, string1, string2);
                                 break;
                             }
                         }
@@ -1078,7 +1119,7 @@ void compare(char *command)
                     l2 = r2 + 2;
                     r2 = k-1;
                     if(word_Counter1 == word_Counter2){
-                        if((r1-l1 != r2-l2) || ((r1-l1 == r2-l2) && (!string(string1, string2, r1-l1+1)))){
+                        if((r1-l1 != r2-l2) || ((r1-l1 == r2-l2) && (!string_checker(string1+l1, string2+l2, r1-l1+1)))){
                             fail++;
                             if(fail == 1){
                                 left1 = l1;
@@ -1087,9 +1128,7 @@ void compare(char *command)
                                 right2 = r2;
                             }
                             else if(fail > 1){
-                                printf("");
-                                puts(string1);
-                                puts(string2);
+                                fprintf(tptr, "============ #%d ============\n%s\n%s\n", line, string1, string2);
                                 break;
                             }
                         }
@@ -1098,42 +1137,63 @@ void compare(char *command)
             }
         }
         if(fail == 1){
-            string1[left1-1] = NULL;
-            string1[right1+1] = NULL;
-            string2[left2-1] = NULL;
-            string2[right2+1] = NULL;
-            printf("============ #%d ============\n%s >>%s<< %s\n%s >>%s<< %s", line, string1, string1+left1, string1+right1+2, string2, string2+left2, string2+right2+2);
+            char *uns1 = (char *)calloc(100, sizeof(char));
+            char *uns2 = (char *)calloc(100, sizeof(char));
+            strncat(uns1, string1, left1);
+            strcat(uns1, ">>");
+            strncat(uns1, string1+left1, right1-left1+1);
+            strcat(uns1, "<<");
+            strcat(uns1, string1+right1+1);
+            strncat(uns2, string2, left2);
+            strcat(uns2, ">>");
+            strncat(uns2, string2+left2, right2-left2+1);
+            strcat(uns2, "<<");
+            strcat(uns2, string2+right2+1);
+            fprintf(tptr, "============ #%d ============\n%s\n%s\n", line, uns1, uns2);
+            free(uns1);
+            free(uns2);
         }
         line++;
         free(string1);
         free(string2);
     }
-    if(!feof(fptr1) && feof(fptr2)){
-        printf(">>>>>>>>>>>> #%d - #%d >>>>>>>>>>>>\n", line+1, line2);
+    if(feof(fptr1) && !feof(fptr2)){
+        fprintf(tptr, ">>>>>>>>>>>> #%d - #%d >>>>>>>>>>>>\n", line, line1+1);
         while(!feof(fptr2)){
             char *string2 = (char *)calloc(100, sizeof(char));
             fgets(string2, 100, fptr2);
-            puts(string2);
-            free(fptr2);
+            fprintf(tptr, "%s\n", string2);
+            free(string2);
         }
     }
-    else if(feof(fptr1) && !feof(fptr2)){
-        printf("<<<<<<<<<<<< #%d - #%d <<<<<<<<<<<<", line+1, line1);
+    else if(!feof(fptr1) && feof(fptr2)){
+        fprintf(tptr, "<<<<<<<<<<<< #%d - #%d <<<<<<<<<<<<\n", line, line2+1);
         while(!feof(fptr1)){
             char *string1 = (char *)calloc(100, sizeof(char));
             fgets(string1, 100, fptr1);
-            puts(string1);
-            free(fptr1);
+            fprintf(tptr, "%s\n", string1);
+            free(string1);
         }
     }
     fclose(fptr1);
     fclose(fptr2);
     free(ad_name1);
     free(ad_name2);
+    if(arm == 0){
+        fseek(tptr, 0, SEEK_END);
+        int file_size_tptr = ftell(tptr);
+        fseek(tptr, 0, SEEK_SET);
+        char *string = (char *)calloc(file_size_tptr+1, sizeof(char));
+        fread(string, sizeof(char), file_size_tptr, tptr);
+        printf("%s", string);
+        free(string);
+    }
+    else
+        arman(strstr(command, comms[24]) + strlen(comms[24]));
     return ;
 }
 
-void listdirectory(char *dirname, int depth, int curdepth, int next_situation)
+void listdirectory(char *dirname, int depth, int curdepth, int next_situation, FILE *tptr)
 {
     if((curdepth > depth) && (depth != -1))
         return ;
@@ -1143,9 +1203,6 @@ void listdirectory(char *dirname, int depth, int curdepth, int next_situation)
     struct dirent *subdir;
     subdir = readdir(dir);
     FILE *fptr;
-    FILE *tptr = fopen("temporary.txt", "w");
-    fclose(tptr);
-    tptr = fopen("temporary.txt", "a");
     // printf("root\n")
     while(subdir != NULL){
         char *name = (char *)calloc(100, sizeof(char));
@@ -1158,7 +1215,7 @@ void listdirectory(char *dirname, int depth, int curdepth, int next_situation)
                 // _setmode(_fileno(stdout), _O_U8TEXT);
                 if(next_situation == 1)
                     fprintf(tptr, "|    ");
-                else 
+                else
                     fprintf(tptr, "     ");
             }
             if(curdepth != 1){
@@ -1169,14 +1226,14 @@ void listdirectory(char *dirname, int depth, int curdepth, int next_situation)
             }
             fprintf(tptr, "%s\n", name);
         }
-        fclose(tptr);
         char *dir_name = (char *)calloc(100, sizeof(char));
         strcat(dir_name, dirname);
         strcat(dir_name, "/");
         strcat(dir_name, name);
         fptr = fopen(dir_name, "r");
         if((fptr == NULL) && !string_checker(name, ".", 1) && !string_checker(name, "..", 1)){
-            listdirectory(dir_name, depth, curdepth+1, (subdir != NULL));
+            listdirectory(dir_name, depth, curdepth+1, (subdir != NULL), tptr);
+            // fprintf(tptr, "\n");
         }
         free(dir_name);
         free(name);
@@ -1193,9 +1250,11 @@ void tree(char *command)
         printf("invalid depth\n");
         return ;
     }
-    listdirectory("root", depth, 1, 0);
+    FILE *tptr = fopen("temporary.txt", "w");
+    listdirectory("root", depth, 1, 0, tptr);
+    fclose(tptr);
     if(arm == 0){
-        FILE *tptr = fopen("temporary.txt", "r");
+        tptr = fopen("temporary.txt", "r");
         fseek(tptr, 0, SEEK_END);
         int file_size = ftell(tptr);
         fseek(tptr, 0, SEEK_SET);
@@ -1203,10 +1262,12 @@ void tree(char *command)
         fread(string, sizeof(char), file_size, tptr);
         printf("%s", string);
         free(string);
-        fclsoe(tptr);
+        fclose(tptr);
     }
-    else
+    else{
+        printf("%s\n", strstr(command, comms[24]) + strlen(comms[24]));
         arman(strstr(command, comms[24]) + strlen(comms[24]));
+    }
     return ;
 }
 
@@ -1221,49 +1282,50 @@ void arman(char *command)
     fread(string, sizeof(char), file_size, tptr);
     char *temp = (char *)calloc(strlen(command) + strlen(comms[2]) + file_size + 4, sizeof(char));
     if(string_checker(command, comms[1], strlen(comms[1]))){
-        strncpy(temp, command, (size_t)(strstr(command, comms[3])-command));
-        strcpy(temp, comms[2]);
-        strcpy(temp, " \"");
-        strcpy(temp, string);
-        strcpy(temp, "\"");
-        strcpy(temp, strstr(command, comms[3]));
+        strncat(temp, command, (size_t)(strstr(command, comms[3])-command));
+        strcat(temp, comms[2]);
+        strcat(temp, " \"");
+        strcat(temp, string);
+        strcat(temp, "\"");
+        strcat(temp, strstr(command, comms[3]));
         insert(temp + strlen(comms[1]) + 1);
     }
     else if(string_checker(command, "find", 4)){
-        strcpy(temp, "find");
-        strcpy(temp, comms[2]);
-        strcpy(temp, " \"");
-        strcpy(temp, string);
-        strcpy(temp, "\"");
-        strcpy(temp, command+4);
+        strcat(temp, "find");
+        strcat(temp, comms[2]);
+        strcat(temp, " \"");
+        strcat(temp, string);
+        strcat(temp, "\"");
+        strcat(temp, command+4);
         find(command + strlen(comms[10]));
     }
     else if(string_checker(command, "replace", 7)){
-        strcpy(temp, "replace");
-        strcpy(temp, " -str1");
-        strcpy(temp, " \"");
-        strcpy(temp, string);
-        strcpy(temp, "\"");
-        strcpy(temp, command+7);
+        strcat(temp, "replace");
+        strcat(temp, " -str1");
+        strcat(temp, " \"");
+        strcat(temp, string);
+        strcat(temp, "\"");
+        strcat(temp, command+7);
         replace(command + strlen(comms[27]));
     }
     else if(string_checker(command, "grep", 4)){
-        strcpy(temp, "grep");
-        strcpy(temp, comms[2]);
-        strcpy(temp, " \"");
-        strcpy(temp, string);
-        strcpy(temp, "\"");
-        strcpy(temp, command+4);
+        strcat(temp, "grep");
+        strcat(temp, comms[2]);
+        strcat(temp, " \"");
+        strcat(temp, string);
+        strcat(temp, "\"");
+        strcat(temp, command+4);
         grep(command + strlen(comms[16]));
     }
     free(temp);
     free(string);
-    fclsoe(tptr);
+    fclose(tptr);
 }
 
 int main()
 {
     while(1){
+        printf(">");
         char *command = (char *)calloc(200, sizeof(char));
         gets(command);
         arm = strstr(command, comms[24]) != NULL;
@@ -1290,15 +1352,18 @@ int main()
         else if(string_checker(command, comms[16], strlen(comms[16])))
             grep(command + strlen(comms[16]));
         else if(string_checker(command, comms[23], strlen(comms[23])))
-            undo(command + strlen(comms[23]) + 1)
+            undo(command + strlen(comms[23]) + 1);
         else if(string_checker(command, comms[22], strlen(comms[22])))
-            indent(command + strlen(comms[22] + 1))
+            indent(command + strlen(comms[22]) + 1);
         else if(string_checker(command, comms[19], strlen(comms[19])))
-            compare(command + strlen(comms[19] + 1));
+            compare(command + strlen(comms[19]) + 1);
         else if(string_checker(command, comms[20], strlen(comms[20])))
             tree(command + strlen(comms[20]));
+        else if(string_checker(command, "exit", strlen("exit")))
+            break;
+        else
+            printf("invalid command:(\n");
         free(command);
-        break;
     }
     return 0;
 }
